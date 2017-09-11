@@ -14,28 +14,11 @@ void error(const std::string& message);
         error("Vulkan: error code " + std::to_string(result) + " returned by " + #function_call); \
 }
 
-//
-// Initialization.
-//
-
-// Initializes VK_Instance structure.
-// After calling this function we get fully functional vulkan subsystem.
 void vk_initialize();
 
-// Shutdown vulkan subsystem by releasing resources acquired by Vk_Instance.
 void vk_shutdown();
 
-//
-// Resources allocation.
-//
-void vk_ensure_staging_buffer_allocation(VkDeviceSize size);
-VkBuffer vk_create_buffer(VkDeviceSize size, VkBufferUsageFlags usage);
 VkBuffer vk_create_host_visible_buffer(VkDeviceSize size, VkBufferUsageFlags usage, void** buffer_ptr);
-
-//
-// Rendering setup.
-//
-void vk_record_and_run_commands(VkCommandPool command_pool, VkQueue queue, std::function<void(VkCommandBuffer)> recorder);
 
 void vk_record_buffer_memory_barrier(VkCommandBuffer cb, VkBuffer buffer,
                                      VkPipelineStageFlags src_stages, VkPipelineStageFlags dst_stages,
@@ -55,12 +38,6 @@ struct Vk_Instance {
 
     VkCommandPool command_pool = VK_NULL_HANDLE;
     VkCommandBuffer command_buffer = VK_NULL_HANDLE;
-
-    // Host visible memory used to copy image data to device local memory.
-    VkBuffer staging_buffer = VK_NULL_HANDLE;
-    VkDeviceMemory staging_buffer_memory = VK_NULL_HANDLE;
-    VkDeviceSize staging_buffer_size = 0;
-    uint8_t* staging_buffer_ptr = nullptr; // pointer to mapped staging buffer
 
     //
     // Memory allocation.

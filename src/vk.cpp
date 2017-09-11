@@ -132,142 +132,6 @@ static uint32_t find_memory_type(VkPhysicalDevice physical_device, uint32_t memo
     return -1;
 }
 
-static VkSwapchainKHR create_swapchain(VkPhysicalDevice physical_device, VkDevice device, VkSurfaceKHR surface, VkSurfaceFormatKHR surface_format) {
-    VkSurfaceCapabilitiesKHR surface_caps;
-    VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_caps));
-
-    VkExtent2D image_extent = surface_caps.currentExtent;
-    if (image_extent.width == 0xffffffff && image_extent.height == 0xffffffff) {
-        image_extent.width = std::min(surface_caps.maxImageExtent.width, std::max(surface_caps.minImageExtent.width, 640u));
-        image_extent.height = std::min(surface_caps.maxImageExtent.height, std::max(surface_caps.minImageExtent.height, 480u));
-    }
-
-    // VK_IMAGE_USAGE_TRANSFER_DST_BIT is required by image clear operations.
-    if ((surface_caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) == 0)
-        error("create_swapchain: VK_IMAGE_USAGE_TRANSFER_DST_BIT is not supported by the swapchain");
-
-    // VK_IMAGE_USAGE_TRANSFER_SRC_BIT is required in order to take screenshots.
-    if ((surface_caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) == 0)
-        error("create_swapchain: VK_IMAGE_USAGE_TRANSFER_SRC_BIT is not supported by the swapchain");
-
-    // determine present mode and swapchain image count
-    uint32_t present_mode_count;
-    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &present_mode_count, nullptr));
-    std::vector<VkPresentModeKHR> present_modes(present_mode_count);
-    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &present_mode_count, present_modes.data()));
-
-    bool mailbox_supported = false;
-    bool immediate_supported = false;
-    for (auto pm : present_modes) {
-        if (pm == VK_PRESENT_MODE_MAILBOX_KHR)
-            mailbox_supported = true;
-        else if (pm == VK_PRESENT_MODE_IMMEDIATE_KHR)
-            immediate_supported = true;
-    }
-
-    VkPresentModeKHR present_mode;
-    uint32_t image_count;
-    if (mailbox_supported) {
-        present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
-        image_count = std::max(3u, surface_caps.minImageCount);
-        if (surface_caps.maxImageCount > 0) {
-            image_count = std::min(image_count, surface_caps.maxImageCount);
-        }
-    } else if (immediate_supported) {
-        present_mode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-        image_count = surface_caps.minImageCount;
-    } else {
-        present_mode = VK_PRESENT_MODE_FIFO_KHR;
-        image_count = surface_caps.minImageCount;
-    }
-
-    // create swap chain
-    VkSwapchainCreateInfoKHR desc;
-    desc.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    desc.pNext = nullptr;
-    desc.flags = 0;
-    desc.surface = surface;
-    desc.minImageCount = image_count;
-    desc.imageFormat = surface_format.format;
-    desc.imageColorSpace = surface_format.colorSpace;
-    desc.imageExtent = image_extent;
-    desc.imageArrayLayers = 1;
-    desc.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    desc.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    desc.queueFamilyIndexCount = 0;
-    desc.pQueueFamilyIndices = nullptr;
-    desc.preTransform = surface_caps.currentTransform;
-    desc.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    desc.presentMode = present_mode;
-    desc.clipped = VK_TRUE;
-    desc.oldSwapchain = VK_NULL_HANDLE;
-
-    VkSwapchainKHR swapchain;
-    VK_CHECK(vkCreateSwapchainKHR(device, &desc, nullptr, &swapchain));
-    return swapchain;
-}
-
-void vk_record_and_run_commands(VkCommandPool command_pool, VkQueue queue, std::function<void(VkCommandBuffer)> recorder) {
-
-    VkCommandBufferAllocateInfo alloc_info;
-    alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    alloc_info.pNext = nullptr;
-    alloc_info.commandPool = command_pool;
-    alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    alloc_info.commandBufferCount = 1;
-
-    VkCommandBuffer command_buffer;
-    VK_CHECK(vkAllocateCommandBuffers(vk.device, &alloc_info, &command_buffer));
-
-    VkCommandBufferBeginInfo begin_info;
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.pNext = nullptr;
-    begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    begin_info.pInheritanceInfo = nullptr;
-
-    VK_CHECK(vkBeginCommandBuffer(command_buffer, &begin_info));
-    recorder(command_buffer);
-    VK_CHECK(vkEndCommandBuffer(command_buffer));
-
-    VkSubmitInfo submit_info;
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.pNext = nullptr;
-    submit_info.waitSemaphoreCount = 0;
-    submit_info.pWaitSemaphores = nullptr;
-    submit_info.pWaitDstStageMask = nullptr;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &command_buffer;
-    submit_info.signalSemaphoreCount = 0;
-    submit_info.pSignalSemaphores = nullptr;
-
-    VK_CHECK(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
-    VK_CHECK(vkQueueWaitIdle(queue));
-    vkFreeCommandBuffers(vk.device, command_pool, 1, &command_buffer);
-}
-
-static void record_image_layout_transition(VkCommandBuffer command_buffer, VkImage image, VkImageAspectFlags image_aspect_flags,
-    VkAccessFlags src_access_flags, VkImageLayout old_layout, VkAccessFlags dst_access_flags, VkImageLayout new_layout) {
-
-    VkImageMemoryBarrier barrier;
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.pNext = nullptr;
-    barrier.srcAccessMask = src_access_flags;
-    barrier.dstAccessMask = dst_access_flags;
-    barrier.oldLayout = old_layout;
-    barrier.newLayout = new_layout;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = image;
-    barrier.subresourceRange.aspectMask = image_aspect_flags;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-
-    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
-        0, nullptr, 0, nullptr, 1, &barrier);
-}
-
 struct Allocation {
     VkDeviceMemory memory = VK_NULL_HANDLE;
     VkDeviceSize offset = 0;
@@ -326,48 +190,6 @@ static Allocation allocate_memory(const VkMemoryRequirements& memory_requirement
     alloc.offset = chunk->used - memory_requirements.size;
     alloc.data = static_cast<uint8_t*>(chunk->data) + alloc.offset;
     return alloc;
-}
-
-void vk_ensure_staging_buffer_allocation(VkDeviceSize size) {
-    if (vk.staging_buffer_size >= size)
-        return;
-
-    if (vk.staging_buffer != VK_NULL_HANDLE)
-        vkDestroyBuffer(vk.device, vk.staging_buffer, nullptr);
-
-    if (vk.staging_buffer_memory != VK_NULL_HANDLE)
-        vkFreeMemory(vk.device, vk.staging_buffer_memory, nullptr);
-
-    vk.staging_buffer_size = size;
-
-    VkBufferCreateInfo buffer_desc;
-    buffer_desc.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer_desc.pNext = nullptr;
-    buffer_desc.flags = 0;
-    buffer_desc.size = size;
-    buffer_desc.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    buffer_desc.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    buffer_desc.queueFamilyIndexCount = 0;
-    buffer_desc.pQueueFamilyIndices = nullptr;
-    VK_CHECK(vkCreateBuffer(vk.device, &buffer_desc, nullptr, &vk.staging_buffer));
-
-    VkMemoryRequirements memory_requirements;
-    vkGetBufferMemoryRequirements(vk.device, vk.staging_buffer, &memory_requirements);
-
-    uint32_t memory_type = find_memory_type(vk.physical_device, memory_requirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    VkMemoryAllocateInfo alloc_info;
-    alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    alloc_info.pNext = nullptr;
-    alloc_info.allocationSize = memory_requirements.size;
-    alloc_info.memoryTypeIndex = memory_type;
-    VK_CHECK(vkAllocateMemory(vk.device, &alloc_info, nullptr, &vk.staging_buffer_memory));
-    VK_CHECK(vkBindBufferMemory(vk.device, vk.staging_buffer, vk.staging_buffer_memory, 0));
-
-    void* data;
-    VK_CHECK(vkMapMemory(vk.device, vk.staging_buffer_memory, 0, VK_WHOLE_SIZE, 0, &data));
-    vk.staging_buffer_ptr = (byte*)data;
 }
 
 static void create_instance() {
@@ -741,12 +563,6 @@ void vk_initialize() {
 void vk_shutdown() {
     vkDeviceWaitIdle(vk.device);
 
-    if (vk.staging_buffer != VK_NULL_HANDLE)
-        vkDestroyBuffer(vk.device, vk.staging_buffer, nullptr);
-
-    if (vk.staging_buffer_memory != VK_NULL_HANDLE)
-        vkFreeMemory(vk.device, vk.staging_buffer_memory, nullptr);
-
     for (const auto& chunk : vk.device_local_chunks) {
         vkFreeMemory(vk.device, chunk.memory, nullptr);
     }
@@ -781,27 +597,6 @@ void vk_record_buffer_memory_barrier(VkCommandBuffer cb, VkBuffer buffer,
     barrier.size = VK_WHOLE_SIZE;
 
     vkCmdPipelineBarrier(cb, src_stages, dst_stages, 0, 0, nullptr, 1, &barrier, 0, nullptr);
-}
-
-VkBuffer vk_create_buffer(VkDeviceSize size, VkBufferUsageFlags usage) {
-    VkBufferCreateInfo desc;
-    desc.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    desc.pNext = nullptr;
-    desc.flags = 0;
-    desc.size = size;
-    desc.usage = usage;
-    desc.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    desc.queueFamilyIndexCount = 0;
-    desc.pQueueFamilyIndices = nullptr;
-
-    VkBuffer buffer = get_resource_manager()->create_buffer(desc);
-
-    VkMemoryRequirements memory_requirements;
-    vkGetBufferMemoryRequirements(vk.device, buffer, &memory_requirements);
-    auto alloc = allocate_memory(memory_requirements, false);
-    VK_CHECK(vkBindBufferMemory(vk.device, buffer, alloc.memory, alloc.offset));
-
-    return buffer;
 }
 
 VkBuffer vk_create_host_visible_buffer(VkDeviceSize size, VkBufferUsageFlags usage, void** buffer_ptr) {
