@@ -1,0 +1,4 @@
+.vs/
+build
+src/shaders/tools/bin2hex.obj
+src/shaders/tools/bin2hex.exe

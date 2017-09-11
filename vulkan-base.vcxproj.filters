@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\resource_manager.cpp" />
+    <ClCompile Include="src\demo.cpp" />
+    <ClCompile Include="src\vk.cpp" />
+    <ClCompile Include="src\shaders\spirv\shader_comp.cpp">
+      <Filter>spirv</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\resource_manager.h" />
+    <ClInclude Include="src\demo.h" />
+    <ClInclude Include="src\vk.h" />
+    <ClInclude Include="src\vk_definitions.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="spirv">
+      <UniqueIdentifier>{1f312f12-54b2-48ec-935c-4e39334a8662}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

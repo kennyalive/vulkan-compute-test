@@ -1,0 +1,18 @@
+#version 450
+
+layout(local_size_x = 1024) in;
+
+const int buffer_size = 1024 * 1024;
+
+layout(set = 0, binding = 0) buffer Src_Buffer {
+    int src_buffer[buffer_size];
+};
+
+layout(set = 0, binding = 1) buffer Dst_Buffer {
+    int dst_buffer[buffer_size];
+};
+
+void main() {
+    int index = int(gl_GlobalInvocationID.x);
+    dst_buffer[index] = src_buffer[index];
+}
