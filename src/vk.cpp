@@ -393,14 +393,14 @@ static void create_instance() {
             error("Vulkan: required instance extension is not available: " + std::string(name));
     }
 
-	VkApplicationInfo app_info;
-	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	app_info.pNext = nullptr;
-	app_info.pApplicationName = nullptr;
-	app_info.applicationVersion = 0;
-	app_info.pEngineName = nullptr;
-	app_info.engineVersion = 0;
-	app_info.apiVersion = VK_API_VERSION_1_0;
+    VkApplicationInfo app_info;
+    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    app_info.pNext = nullptr;
+    app_info.pApplicationName = nullptr;
+    app_info.applicationVersion = 0;
+    app_info.pEngineName = nullptr;
+    app_info.engineVersion = 0;
+    app_info.apiVersion = VK_API_VERSION_1_0;
 
     VkInstanceCreateInfo desc;
     desc.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -444,9 +444,9 @@ static void create_device() {
             if ((queue_families[i].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0) {
                 vk.queue_family_index = i;
 
-				bool pure_compute = (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0;
-				if (pure_compute)
-					break;
+                bool pure_compute = (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0;
+                if (pure_compute)
+                    break;
             }
         }
         if (vk.queue_family_index == -1)

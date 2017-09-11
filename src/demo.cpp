@@ -10,13 +10,13 @@ Vk_Demo::Vk_Demo() {
     vk_initialize();
     get_resource_manager()->initialize(vk.device);
 
-	src_buffer = vk_create_host_visible_buffer(buffer_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, &src_buffer_ptr);
-	dst_buffer = vk_create_host_visible_buffer(buffer_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, &dst_buffer_ptr);
+    src_buffer = vk_create_host_visible_buffer(buffer_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, &src_buffer_ptr);
+    dst_buffer = vk_create_host_visible_buffer(buffer_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, &dst_buffer_ptr);
 
-	auto p_src_data = static_cast<int32_t*>(src_buffer_ptr);
-	for (int32_t i = 0; i < buffer_size / sizeof(int32_t); i++) {
-		p_src_data[i] = i;
-	}
+    auto p_src_data = static_cast<int32_t*>(src_buffer_ptr);
+    for (int32_t i = 0; i < buffer_size / sizeof(int32_t); i++) {
+        p_src_data[i] = i;
+    }
 
     create_descriptor_sets();
     create_pipeline_layouts();
@@ -58,14 +58,14 @@ void Vk_Demo::create_descriptor_sets() {
         descriptor_bindings[0].binding = 0;
         descriptor_bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         descriptor_bindings[0].descriptorCount = 1;
-		descriptor_bindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+        descriptor_bindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
         descriptor_bindings[0].pImmutableSamplers = nullptr;
 
-		descriptor_bindings[1].binding = 1;
-		descriptor_bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		descriptor_bindings[1].descriptorCount = 1;
-		descriptor_bindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-		descriptor_bindings[1].pImmutableSamplers = nullptr;
+        descriptor_bindings[1].binding = 1;
+        descriptor_bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptor_bindings[1].descriptorCount = 1;
+        descriptor_bindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+        descriptor_bindings[1].pImmutableSamplers = nullptr;
 
         VkDescriptorSetLayoutCreateInfo desc;
         desc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -73,7 +73,7 @@ void Vk_Demo::create_descriptor_sets() {
         desc.flags = 0;
         desc.bindingCount = 2;
         desc.pBindings = descriptor_bindings;
-		descriptor_set_layout = get_resource_manager()->create_descriptor_set_layout(desc);
+        descriptor_set_layout = get_resource_manager()->create_descriptor_set_layout(desc);
     }
 
     //
@@ -119,7 +119,7 @@ void Vk_Demo::create_pipeline_layouts() {
     desc.pNext = nullptr;
     desc.flags = 0;
     desc.setLayoutCount = 1;
-	desc.pSetLayouts = &descriptor_set_layout;
+    desc.pSetLayouts = &descriptor_set_layout;
     desc.pushConstantRangeCount = 0;
     desc.pPushConstantRanges = nullptr;
     pipeline_layout = get_resource_manager()->create_pipeline_layout(desc);

@@ -16,19 +16,19 @@ private:
     void create_pipelines();
 
 private:
-	VkBuffer src_buffer = VK_NULL_HANDLE;
-	void* src_buffer_ptr = nullptr;
+    VkBuffer src_buffer = VK_NULL_HANDLE;
+    void* src_buffer_ptr = nullptr;
 
-	VkBuffer dst_buffer = VK_NULL_HANDLE;
-	void* dst_buffer_ptr = nullptr;
+    VkBuffer dst_buffer = VK_NULL_HANDLE;
+    void* dst_buffer_ptr = nullptr;
 
     VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
-	VkDescriptorSetLayout descriptor_set_layout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout descriptor_set_layout = VK_NULL_HANDLE;
     VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
 
-	VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+    VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
 
-	VkShaderModule compute_shader = VK_NULL_HANDLE;
+    VkShaderModule compute_shader = VK_NULL_HANDLE;
 
-	VkPipeline pipeline = VK_NULL_HANDLE;
+    VkPipeline pipeline = VK_NULL_HANDLE;
 };
